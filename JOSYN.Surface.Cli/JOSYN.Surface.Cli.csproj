@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<LangVersion>latest</LangVersion>
+		<AssemblyName>JOSYN.Surface.Cli</AssemblyName>
+		<RootNamespace>JOSYN.Surface.Cli</RootNamespace>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\JOSYN.Surface.Contracts\JOSYN.Surface.Contracts.csproj"/>
+		<ProjectReference Include="..\JOSYN.Surface.FakeAgent\JOSYN.Surface.FakeAgent.csproj"/>
+	</ItemGroup>
+</Project>

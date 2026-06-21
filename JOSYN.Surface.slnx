@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="JOSYN.Surface.Contracts/JOSYN.Surface.Contracts.csproj" />
+  <Project Path="JOSYN.Surface.FakeAgent/JOSYN.Surface.FakeAgent.csproj" />
+  <Project Path="JOSYN.Surface.Cli/JOSYN.Surface.Cli.csproj" />
+  <Project Path="JOSYN.Surface.Test/JOSYN.Surface.Test.csproj" />
+</Solution>
