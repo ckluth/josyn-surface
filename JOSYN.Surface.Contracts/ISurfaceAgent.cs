@@ -30,4 +30,24 @@ public interface ISurfaceAgent
     /// <summary>Returns the full detail of a single error, or a <see cref="SurfaceErrorCategory.NotFound"/> failure.</summary>
     Task<Result<ErrorDetail>> GetErrorDetail(
         GetErrorDetail query, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all registered jobs on the query's target as a lightweight discovery listing.
+    /// </summary>
+    Task<Result<IReadOnlyList<RegisteredJobSummary>>> GetRegisteredJobs(
+        GetRegisteredJobs query, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all argument records for a single registered job, or
+    /// <see cref="SurfaceErrorCategory.NotFound"/> if the job is not registered on the target.
+    /// </summary>
+    Task<Result<JobArguments>> GetJobArguments(
+        GetJobArguments query, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the schedule (and all its time entries) for a single registered job, or
+    /// <see cref="SurfaceErrorCategory.NotFound"/> if no schedule exists for the job on the target.
+    /// </summary>
+    Task<Result<JobSchedule>> GetJobSchedule(
+        GetJobSchedule query, CancellationToken cancellationToken = default);
 }

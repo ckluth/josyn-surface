@@ -19,7 +19,7 @@ namespace JOSYN.Surface.FakeAgent;
 /// agent maps every raw read to the durable DTOs here, internally.
 /// </para>
 /// </remarks>
-public sealed class FakeSurfaceAgent(string devConnectionString) : ISurfaceAgent
+public sealed partial class FakeSurfaceAgent(string devConnectionString) : ISurfaceAgent
 {
     /// <inheritdoc/>
     public async Task<Result<IReadOnlyList<SessionSummary>>> GetRecentSessions(

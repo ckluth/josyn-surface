@@ -27,9 +27,12 @@ internal static class SurfaceCli
 
         return args[0] switch
         {
-            "sessions" => await RunSessions(agent, target, args),
-            "error"    => await RunError(agent, target, args),
-            _          => Usage($"Unknown command: '{args[0]}'.")
+            "sessions"  => await RunSessions(agent, target, args),
+            "error"     => await RunError(agent, target, args),
+            "jobs"      => await RunJobs(agent, target),
+            "arguments" => await RunArguments(agent, target, args),
+            "schedule"  => await RunSchedule(agent, target, args),
+            _           => Usage($"Unknown command: '{args[0]}'.")
         };
 
         // ── helpers ────────────────────────────────────────────────────────────
@@ -72,6 +75,42 @@ internal static class SurfaceCli
             return Fail(result.ErrorMessage);
 
         RenderError(result.Value);
+        return 0;
+    }
+
+    private static async Task<int> RunJobs(ISurfaceAgent agent, SurfaceTarget target)
+    {
+        var result = await agent.GetRegisteredJobs(new GetRegisteredJobs { Target = target });
+        if (!result.Succeeded)
+            return Fail(result.ErrorMessage);
+
+        RenderJobs(result.Value);
+        return 0;
+    }
+
+    private static async Task<int> RunArguments(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    {
+        if (args.Length < 2 || string.IsNullOrWhiteSpace(args[1]))
+            return Usage("arguments requires a job name: arguments <job-name>.");
+
+        var result = await agent.GetJobArguments(new GetJobArguments { Target = target, JobName = args[1] });
+        if (!result.Succeeded)
+            return Fail(result.ErrorMessage);
+
+        RenderArguments(result.Value);
+        return 0;
+    }
+
+    private static async Task<int> RunSchedule(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    {
+        if (args.Length < 2 || string.IsNullOrWhiteSpace(args[1]))
+            return Usage("schedule requires a job name: schedule <job-name>.");
+
+        var result = await agent.GetJobSchedule(new GetJobSchedule { Target = target, JobName = args[1] });
+        if (!result.Succeeded)
+            return Fail(result.ErrorMessage);
+
+        RenderSchedule(result.Value);
         return 0;
     }
 
@@ -121,6 +160,81 @@ internal static class SurfaceCli
         }
     }
 
+    private static void RenderJobs(IReadOnlyList<RegisteredJobSummary> jobs)
+    {
+        if (jobs.Count == 0)
+        {
+            Console.WriteLine("No jobs registered.");
+            return;
+        }
+
+        Console.WriteLine($"{"Job name",-48}  {"Technical user",-24}  Args");
+        Console.WriteLine(new string('-', 82));
+        foreach (var j in jobs)
+        {
+            Console.WriteLine(
+                $"{Truncate(j.JobName, 48),-48}  {Truncate(j.TechnicalUserName, 24),-24}  {j.ArgumentCount}");
+        }
+        Console.WriteLine();
+        Console.WriteLine($"{jobs.Count} registered job(s).");
+    }
+
+    private static void RenderArguments(JobArguments job)
+    {
+        Console.WriteLine($"Job           : {job.JobName}");
+        Console.WriteLine($"Technical user: {job.TechnicalUserName}");
+        Console.WriteLine($"Env / Machine : {job.Environment} / {job.Machine}");
+        Console.WriteLine($"Arguments     : {job.Arguments.Count}");
+
+        if (job.Arguments.Count == 0)
+        {
+            Console.WriteLine("(no argument records)");
+            return;
+        }
+
+        Console.WriteLine();
+        foreach (var a in job.Arguments)
+        {
+            Console.WriteLine($"── {a.Name}");
+            Console.WriteLine(a.Content);
+            Console.WriteLine();
+        }
+    }
+
+    private static void RenderSchedule(JobSchedule schedule)
+    {
+        Console.WriteLine($"Job           : {schedule.JobName}");
+        Console.WriteLine($"Env / Machine : {schedule.Environment} / {schedule.Machine}");
+
+        if (schedule.Suspended)
+        {
+            var until = schedule.SuspendedUntil is { } d ? $"until {d:yyyy-MM-dd}" : "indefinitely";
+            Console.WriteLine($"Suspended     : yes ({until})");
+        }
+        else
+        {
+            Console.WriteLine("Suspended     : no");
+        }
+
+        Console.WriteLine($"Entries       : {schedule.Entries.Count}");
+
+        if (schedule.Entries.Count == 0)
+        {
+            Console.WriteLine("(no schedule entries)");
+            return;
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"{"Argument record",-32}  {"Schedule definition",-28}  Tolerance");
+        Console.WriteLine(new string('-', 74));
+        foreach (var e in schedule.Entries)
+        {
+            var tolerance = e.ToleranceMinutes is { } t ? $"{t} min" : "-";
+            Console.WriteLine(
+                $"{Truncate(e.ArgumentRecordName, 32),-32}  {Truncate(e.ScheduleDefinition, 28),-28}  {tolerance}");
+        }
+    }
+
     private static string Truncate(string value, int max)
         => value.Length <= max ? value : value[..(max - 1)] + "\u2026";
 
@@ -138,8 +252,11 @@ internal static class SurfaceCli
             Console.Error.WriteLine($"[ERROR] {problem}");
 
         Console.Error.WriteLine("Usage:");
-        Console.Error.WriteLine("  sessions [--max N]   List the N most recent sessions (default 20).");
-        Console.Error.WriteLine("  error <error-guid>   Show the full detail of one error.");
+        Console.Error.WriteLine("  sessions [--max N]      List the N most recent sessions (default 20).");
+        Console.Error.WriteLine("  error <error-guid>      Show the full detail of one error.");
+        Console.Error.WriteLine("  jobs                    List all registered jobs.");
+        Console.Error.WriteLine("  arguments <job-name>    Show argument records for a job.");
+        Console.Error.WriteLine("  schedule <job-name>     Show the schedule for a job.");
         return problem is null ? 0 : 2;
     }
 }
