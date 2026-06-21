@@ -50,4 +50,11 @@ public interface ISurfaceAgent
     /// </summary>
     Task<Result<JobSchedule>> GetJobSchedule(
         GetJobSchedule query, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Changes the content of an existing argument record for a registered job.
+    /// Returns <see cref="SurfaceErrorCategory.NotFound"/> when the job or argument is absent.
+    /// Never creates a new record — use a dedicated create command for that.
+    /// </summary>
+    Task<Result<ArgumentChangeOutcome>> ChangeJobArgument(
+        ChangeJobArgument command, CancellationToken cancellationToken = default);
 }

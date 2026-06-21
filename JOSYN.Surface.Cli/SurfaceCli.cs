@@ -1,3 +1,4 @@
+using JOSYN.Backend.SurfaceAgent;
 using JOSYN.Surface.Contracts;
 using JOSYN.Surface.FakeAgent;
 using JOSYN.Jap.Contract;
@@ -22,17 +23,20 @@ internal static class SurfaceCli
         if (args.Length == 0)
             return Usage();
 
-        var agent = new FakeSurfaceAgent(ResolveDevConnection());
+        var agent = new CompositeSurfaceAgent(
+            new FakeSurfaceAgent(ResolveDevConnection()),
+            new SurfaceCommandHandler(ResolveDevConnection()));
         var target = new SurfaceTarget { Environment = RuntimeEnvironment.DEV, Machine = Environment.MachineName };
 
         return args[0] switch
         {
-            "sessions"  => await RunSessions(agent, target, args),
-            "error"     => await RunError(agent, target, args),
-            "jobs"      => await RunJobs(agent, target),
-            "arguments" => await RunArguments(agent, target, args),
-            "schedule"  => await RunSchedule(agent, target, args),
-            _           => Usage($"Unknown command: '{args[0]}'.")
+            "sessions"        => await RunSessions(agent, target, args),
+            "error"           => await RunError(agent, target, args),
+            "jobs"            => await RunJobs(agent, target),
+            "arguments"       => await RunArguments(agent, target, args),
+            "schedule"        => await RunSchedule(agent, target, args),
+            "change-argument" => await RunChangeArgument(agent, target, args),
+            _                 => Usage($"Unknown command: '{args[0]}'.")
         };
 
         // ── helpers ────────────────────────────────────────────────────────────
@@ -112,6 +116,46 @@ internal static class SurfaceCli
 
         RenderSchedule(result.Value);
         return 0;
+    }
+
+    private static async Task<int> RunChangeArgument(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    {
+        // change-argument <jobName> <argName> <content | @file>
+        if (args.Length < 4)
+            return Usage("change-argument requires: change-argument <job-name> <arg-name> <content|@file>.");
+
+        var jobName  = args[1];
+        var argName  = args[2];
+        var content  = await ResolveContent(args[3]);
+
+        var command = new ChangeJobArgument
+        {
+            Target        = target,
+            Actor         = Environment.UserName,
+            CorrelationId = Guid.NewGuid(),
+            JobName       = jobName,
+            ArgumentName  = argName,
+            Content       = content
+        };
+
+        var result = await agent.ChangeJobArgument(command);
+        if (!result.Succeeded)
+            return Fail(result.ErrorMessage);
+
+        RenderArgumentChange(result.Value);
+        return 0;
+
+        // ── helpers ────────────────────────────────────────────────────────────
+        static async Task<string> ResolveContent(string arg)
+        {
+            // @path reads content from a file; useful for non-trivial JSON payloads.
+            if (arg.StartsWith('@'))
+            {
+                var path = arg[1..];
+                return await File.ReadAllTextAsync(path);
+            }
+            return arg;
+        }
     }
 
     // ── rendering ──────────────────────────────────────────────────────────────
@@ -235,6 +279,17 @@ internal static class SurfaceCli
         }
     }
 
+    private static void RenderArgumentChange(ArgumentChangeOutcome outcome)
+    {
+        Console.WriteLine($"Changed   : {outcome.ArgumentName}  (job: {outcome.JobName})");
+        Console.WriteLine();
+        Console.WriteLine("── Before ──────────────────────────────────────────────────────");
+        Console.WriteLine(outcome.Before);
+        Console.WriteLine();
+        Console.WriteLine("── After ───────────────────────────────────────────────────────");
+        Console.WriteLine(outcome.After);
+    }
+
     private static string Truncate(string value, int max)
         => value.Length <= max ? value : value[..(max - 1)] + "\u2026";
 
@@ -252,11 +307,13 @@ internal static class SurfaceCli
             Console.Error.WriteLine($"[ERROR] {problem}");
 
         Console.Error.WriteLine("Usage:");
-        Console.Error.WriteLine("  sessions [--max N]      List the N most recent sessions (default 20).");
-        Console.Error.WriteLine("  error <error-guid>      Show the full detail of one error.");
-        Console.Error.WriteLine("  jobs                    List all registered jobs.");
-        Console.Error.WriteLine("  arguments <job-name>    Show argument records for a job.");
-        Console.Error.WriteLine("  schedule <job-name>     Show the schedule for a job.");
+        Console.Error.WriteLine("  sessions [--max N]                               List the N most recent sessions (default 20).");
+        Console.Error.WriteLine("  error <error-guid>                               Show the full detail of one error.");
+        Console.Error.WriteLine("  jobs                                             List all registered jobs.");
+        Console.Error.WriteLine("  arguments <job-name>                             Show argument records for a job.");
+        Console.Error.WriteLine("  schedule <job-name>                              Show the schedule for a job.");
+        Console.Error.WriteLine("  change-argument <job-name> <arg-name> <content>  Change an existing argument record.");
+        Console.Error.WriteLine("                                                   Use @<path> to read content from a file.");
         return problem is null ? 0 : 2;
     }
 }
