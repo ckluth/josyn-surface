@@ -15,8 +15,13 @@ internal static class SurfaceCli
     // MVP-1 is DEV-only (ADR-031 DS-4/DS-5). The connection string is the local dev default and may be
     // overridden for a differently-configured local box. It is NEVER an int/prod connection.
     private const string DevConnectionEnvVar = "JOSYN_SURFACE_DEV_CONNECTION";
+    private const string BootstrapFileName   = "josyn.bootstrap.ini";
+    private const string BootstrapKey        = "SessionStoreConnectionString";
+
+    // Last-resort fallback for a bare repo run with neither the env var nor a deployed
+    // josyn.bootstrap.ini present. In the deployed scenario the bootstrap.ini "sneak" wins.
     private const string DefaultDevConnection =
-        "Server=localhost\\SQLEXPRESS01;Database=josyn-db-local;User Id=tu.josyn;Password=josyn;TrustServerCertificate=True;";
+        "Server=(localdb)\\MSSQLLocalDB;Database=josyn-db-local;User Id=tu.josyn;Password=josyn;TrustServerCertificate=True;";
 
     public static async Task<int> Run(string[] args)
     {
@@ -42,8 +47,68 @@ internal static class SurfaceCli
         // ── helpers ────────────────────────────────────────────────────────────
         static string ResolveDevConnection()
         {
+            // 1. Explicit override always wins.
             var fromEnv = Environment.GetEnvironmentVariable(DevConnectionEnvVar);
-            return string.IsNullOrWhiteSpace(fromEnv) ? DefaultDevConnection : fromEnv;
+            if (!string.IsNullOrWhiteSpace(fromEnv))
+                return fromEnv;
+
+            // 2. TEMPORARY DEV HACK (ADR-031 DS-4 spirit): the surface "sneaks" the connection
+            //    string out of the backend's deployed josyn.bootstrap.ini. The surface can never
+            //    legitimately live in the backend, so this read is a deliberate, scoped shortcut
+            //    that disappears the moment the REST agent lands. It keeps the deployed surface in
+            //    lockstep with the backend's single source of truth rather than a hardcoded copy.
+            if (TryReadBootstrapConnection(out var fromBootstrap))
+                return fromBootstrap;
+
+            // 3. Last-resort fallback for a bare repo run with no deployment present.
+            return DefaultDevConnection;
+        }
+    }
+
+    // TEMPORARY DEV HACK: read SessionStoreConnectionString out of the backend's deployed
+    // josyn.bootstrap.ini. Searches the surface's own folder and walks up the directory tree, so it
+    // works whether the surface sits in C:\ProgramData\JOSYN\Surface\ or directly in the JOSYN root.
+    private static bool TryReadBootstrapConnection(out string connectionString)
+    {
+        connectionString = string.Empty;
+
+        var file = FindBootstrapFile(AppContext.BaseDirectory);
+        if (file is null)
+            return false;
+
+        foreach (var raw in File.ReadLines(file))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0 || line.StartsWith(';'))   // skip blanks and INI comments
+                continue;
+
+            var eq = line.IndexOf('=');
+            if (eq <= 0)
+                continue;
+
+            if (!line[..eq].Trim().Equals(BootstrapKey, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var value = line[(eq + 1)..].Trim();
+            if (value.Length == 0)
+                continue;
+
+            connectionString = value;
+            return true;
+        }
+
+        return false;
+
+        // ── helpers ────────────────────────────────────────────────────────────
+        static string? FindBootstrapFile(string startDirectory)
+        {
+            for (var dir = new DirectoryInfo(startDirectory); dir is not null; dir = dir.Parent)
+            {
+                var candidate = Path.Combine(dir.FullName, BootstrapFileName);
+                if (File.Exists(candidate))
+                    return candidate;
+            }
+            return null;
         }
     }
 
