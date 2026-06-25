@@ -1,7 +1,10 @@
-using JOSYN.Backend.SurfaceAgent;
+using JOSYN.Backend.Gateway;
+using JOSYN.Jap.Contract;
+using JOSYN.Jrp.Launch;
+using JOSYN.Jrp.Surface;
+using JOSYN.Jrp.Surface.Queries;
 using JOSYN.Surface.Contracts;
 using JOSYN.Surface.FakeAgent;
-using JOSYN.Jap.Contract;
 
 namespace JOSYN.Surface.Cli;
 
@@ -30,8 +33,8 @@ internal static class SurfaceCli
 
         var agent = new CompositeSurfaceAgent(
             new FakeSurfaceAgent(ResolveDevConnection()),
-            new SurfaceCommandHandler(ResolveDevConnection()));
-        var target = new SurfaceTarget { Environment = RuntimeEnvironment.DEV, Machine = Environment.MachineName };
+            new GatewayCommandHandler(ResolveDevConnection()));
+        var target = new JrpTarget { Environment = RuntimeEnvironment.DEV, Machine = Environment.MachineName };
 
         return args[0] switch
         {
@@ -112,7 +115,7 @@ internal static class SurfaceCli
         }
     }
 
-    private static async Task<int> RunSessions(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    private static async Task<int> RunSessions(ISurfaceAgent agent, JrpTarget target, string[] args)
     {
         if (!TryGetMax(args, out var max))
             return Usage("--max requires a positive integer.");
@@ -134,7 +137,7 @@ internal static class SurfaceCli
         }
     }
 
-    private static async Task<int> RunError(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    private static async Task<int> RunError(ISurfaceAgent agent, JrpTarget target, string[] args)
     {
         if (args.Length < 2 || !Guid.TryParse(args[1], out var uid))
             return Usage("error requires a valid GUID: error <error-guid>.");
@@ -147,7 +150,7 @@ internal static class SurfaceCli
         return 0;
     }
 
-    private static async Task<int> RunJobs(ISurfaceAgent agent, SurfaceTarget target)
+    private static async Task<int> RunJobs(ISurfaceAgent agent, JrpTarget target)
     {
         var result = await agent.GetRegisteredJobs(new GetRegisteredJobs { Target = target });
         if (!result.Succeeded)
@@ -157,7 +160,7 @@ internal static class SurfaceCli
         return 0;
     }
 
-    private static async Task<int> RunArguments(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    private static async Task<int> RunArguments(ISurfaceAgent agent, JrpTarget target, string[] args)
     {
         if (args.Length < 2 || string.IsNullOrWhiteSpace(args[1]))
             return Usage("arguments requires a job name: arguments <job-name>.");
@@ -170,7 +173,7 @@ internal static class SurfaceCli
         return 0;
     }
 
-    private static async Task<int> RunSchedule(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    private static async Task<int> RunSchedule(ISurfaceAgent agent, JrpTarget target, string[] args)
     {
         if (args.Length < 2 || string.IsNullOrWhiteSpace(args[1]))
             return Usage("schedule requires a job name: schedule <job-name>.");
@@ -183,7 +186,7 @@ internal static class SurfaceCli
         return 0;
     }
 
-    private static async Task<int> RunChangeArgument(ISurfaceAgent agent, SurfaceTarget target, string[] args)
+    private static async Task<int> RunChangeArgument(ISurfaceAgent agent, JrpTarget target, string[] args)
     {
         // change-argument <jobName> <argName> <content | @file>
         if (args.Length < 4)

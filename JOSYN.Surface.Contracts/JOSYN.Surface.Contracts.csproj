@@ -14,7 +14,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="JOSYN.Foundation.ResultPattern" Version="1.0.0-preview01"/>
-		<PackageReference Include="JOSYN.Backend.Contracts"        Version="1.0.0-preview01"/>
-		<PackageReference Include="JOSYN.Jap.Contract"            Version="1.0.0-preview01"/>
+		<PackageReference Include="JOSYN.Jrp.Launch"              Version="1.0.0-preview01"/>
+		<PackageReference Include="JOSYN.Jrp.Surface"             Version="1.0.0-preview01"/>
 	</ItemGroup>
 </Project>

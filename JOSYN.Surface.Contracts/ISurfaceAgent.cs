@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using JOSYN.Foundation.ResultPattern;
+using JOSYN.Jrp.Launch;
+using JOSYN.Jrp.Surface;
+using JOSYN.Jrp.Surface.Queries;
 
 namespace JOSYN.Surface.Contracts;
 
@@ -16,8 +16,8 @@ namespace JOSYN.Surface.Contracts;
 /// <para>
 /// To make that swap genuinely free, the seam is shaped for the network boundary it will later
 /// cross: every method is asynchronous and cancellable, every request carries a
-/// <see cref="SurfaceTarget"/>, results use the named <see cref="SurfaceErrorCategory"/> taxonomy
-/// via <see cref="SurfaceError"/>, and list queries are bounded. It is also the ADR-030 D-20
+/// <see cref="JrpTarget"/>, results use the named <see cref="JrpErrorCategory"/> taxonomy
+/// via <see cref="JrpError"/>, and list queries are bounded. It is also the ADR-030 D-20
 /// boundary: above it, shells may be idiomatic; below it, implementations are functional-first.
 /// </para>
 /// </remarks>
@@ -27,7 +27,7 @@ public interface ISurfaceAgent
     Task<Result<IReadOnlyList<SessionSummary>>> GetRecentSessions(
         GetRecentSessions query, CancellationToken cancellationToken = default);
 
-    /// <summary>Returns the full detail of a single error, or a <see cref="SurfaceErrorCategory.NotFound"/> failure.</summary>
+    /// <summary>Returns the full detail of a single error, or a <see cref="JrpErrorCategory.NotFound"/> failure.</summary>
     Task<Result<ErrorDetail>> GetErrorDetail(
         GetErrorDetail query, CancellationToken cancellationToken = default);
 
@@ -39,20 +39,21 @@ public interface ISurfaceAgent
 
     /// <summary>
     /// Returns all argument records for a single registered job, or
-    /// <see cref="SurfaceErrorCategory.NotFound"/> if the job is not registered on the target.
+    /// <see cref="JrpErrorCategory.NotFound"/> if the job is not registered on the target.
     /// </summary>
     Task<Result<JobArguments>> GetJobArguments(
         GetJobArguments query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the schedule (and all its time entries) for a single registered job, or
-    /// <see cref="SurfaceErrorCategory.NotFound"/> if no schedule exists for the job on the target.
+    /// <see cref="JrpErrorCategory.NotFound"/> if no schedule exists for the job on the target.
     /// </summary>
     Task<Result<JobSchedule>> GetJobSchedule(
         GetJobSchedule query, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Changes the content of an existing argument record for a registered job.
-    /// Returns <see cref="SurfaceErrorCategory.NotFound"/> when the job or argument is absent.
+    /// Returns <see cref="JrpErrorCategory.NotFound"/> when the job or argument is absent.
     /// Never creates a new record — use a dedicated create command for that.
     /// </summary>
     Task<Result<ArgumentChangeOutcome>> ChangeJobArgument(

@@ -1,6 +1,7 @@
 using JOSYN.Backend.Contracts;
 using JOSYN.Jap.Contract;
-using JOSYN.Surface.Contracts;
+using JOSYN.Jrp.Launch;
+using JOSYN.Jrp.Surface;
 using JOSYN.Surface.FakeAgent;
 using NUnit.Framework;
 
@@ -14,7 +15,7 @@ namespace JOSYN.Surface.Test;
 [TestFixture]
 internal sealed class FakeSurfaceAgentMappingTests
 {
-    private static readonly SurfaceTarget DevTarget =
+    private static readonly JrpTarget DevTarget =
         new() { Environment = RuntimeEnvironment.DEV, Machine = "TEST-BOX" };
 
     [Test]
@@ -57,7 +58,7 @@ internal sealed class FakeSurfaceAgentMappingTests
         var result = FakeSurfaceAgent.MapSession(row, DevTarget);
 
         Assert.That(result.Succeeded, Is.False);
-        Assert.That(SurfaceError.CategoryOf(result.ErrorMessage), Is.EqualTo(SurfaceErrorCategory.Internal));
+        Assert.That(JrpError.CategoryOf(result.ErrorMessage), Is.EqualTo(JrpErrorCategory.Internal));
     }
 
     [Test]
@@ -72,7 +73,7 @@ internal sealed class FakeSurfaceAgentMappingTests
         var result = FakeSurfaceAgent.MapSessions(rows, DevTarget);
 
         Assert.That(result.Succeeded, Is.False);
-        Assert.That(SurfaceError.CategoryOf(result.ErrorMessage), Is.EqualTo(SurfaceErrorCategory.Internal));
+        Assert.That(JrpError.CategoryOf(result.ErrorMessage), Is.EqualTo(JrpErrorCategory.Internal));
     }
 
     [Test]

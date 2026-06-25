@@ -1,19 +1,21 @@
 using JOSYN.Backend.Contracts;
 using JOSYN.Foundation.ResultPattern;
-using JOSYN.Surface.Contracts;
+using JOSYN.Jrp.Launch;
+using JOSYN.Jrp.Surface;
+using JOSYN.Jrp.Surface.Queries;
 using Microsoft.EntityFrameworkCore;
 
 namespace JOSYN.Surface.FakeAgent;
 
 /// <summary>
-/// THROWAWAY (ADR-031 DS-4): an in-process <see cref="ISurfaceAgent"/> that answers the MVP-1 read
+/// THROWAWAY (ADR-031 DS-4): an in-process <see cref="JOSYN.Surface.Contracts.ISurfaceAgent"/> that answers the MVP-1 read
 /// queries by reading the DEV <c>josyn-db-local</c> database directly.
 /// </summary>
 /// <remarks>
 /// This is the deliberate, scoped, DEV-only, read-only exception to ADR-030 D-8 (API-mediated) and
 /// D-17 (store access is platform-resident). It exists so the surface contracts and CLI shell can be
 /// built and proven before the real platform-resident agent and its REST API exist. It is removed
-/// wholesale when that agent lands — nothing above the <see cref="ISurfaceAgent"/> seam depends on it.
+/// wholesale when that agent lands — nothing above the <see cref="JOSYN.Surface.Contracts.ISurfaceAgent"/> seam depends on it.
 /// <para>
 /// Containment rule: no DB row shape (<c>SessionRow</c>, <c>ErrorRow</c>) ever crosses the seam; this
 /// agent maps every raw read to the durable DTOs here, internally.
@@ -26,7 +28,7 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
         GetRecentSessions query, CancellationToken cancellationToken = default)
     {
         if (query.MaxCount <= 0)
-            return SurfaceError.Invalid($"{nameof(query.MaxCount)} must be positive, was {query.MaxCount}.");
+            return JrpError.Invalid($"{nameof(query.MaxCount)} must be positive, was {query.MaxCount}.");
 
         try
         {
@@ -42,7 +44,7 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
         }
         catch (Exception ex)
         {
-            return SurfaceError.Internal("Failed to read recent sessions from the DEV database.", ex);
+            return JrpError.Internal("Failed to read recent sessions from the DEV database.", ex);
         }
     }
 
@@ -59,13 +61,13 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
                 .FirstOrDefaultAsync(e => e.UID == query.ErrorUid, cancellationToken);
 
             if (row is null)
-                return SurfaceError.NotFound($"No error found for UID '{query.ErrorUid}'.");
+                return JrpError.NotFound($"No error found for UID '{query.ErrorUid}'.");
 
             return MapError(row, query.Target);
         }
         catch (Exception ex)
         {
-            return SurfaceError.Internal($"Failed to read error '{query.ErrorUid}' from the DEV database.", ex);
+            return JrpError.Internal($"Failed to read error '{query.ErrorUid}' from the DEV database.", ex);
         }
     }
 
@@ -73,7 +75,7 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
     // Internal + static so it is unit-testable without a database. Pure: no mutation of inputs.
 
     internal static Result<IReadOnlyList<SessionSummary>> MapSessions(
-        IReadOnlyList<SessionRow> rows, SurfaceTarget target)
+        IReadOnlyList<SessionRow> rows, JrpTarget target)
     {
         var summaries = new List<SessionSummary>(rows.Count);
         foreach (var row in rows)
@@ -87,11 +89,11 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
         return Result<IReadOnlyList<SessionSummary>>.Success(summaries);
     }
 
-    internal static Result<SessionSummary> MapSession(SessionRow row, SurfaceTarget target)
+    internal static Result<SessionSummary> MapSession(SessionRow row, JrpTarget target)
     {
         var status = ExecutionStatusParser.Parse(row.ExecutionStatus);
         if (!status.Succeeded)
-            return SurfaceError.Internal(
+            return JrpError.Internal(
                 $"Session '{row.UID}' has an unrecognised ExecutionStatus '{row.ExecutionStatus}'.");
 
         return new SessionSummary
@@ -108,7 +110,7 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
         };
     }
 
-    internal static ErrorDetail MapError(ErrorRow row, SurfaceTarget target) => new()
+    internal static ErrorDetail MapError(ErrorRow row, JrpTarget target) => new()
     {
         Uid              = row.UID,
         OccurredAt       = row.OccurredAt,

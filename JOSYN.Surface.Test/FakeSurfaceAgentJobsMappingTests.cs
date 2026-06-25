@@ -1,5 +1,5 @@
 using JOSYN.Jap.Contract;
-using JOSYN.Surface.Contracts;
+using JOSYN.Jrp.Launch;
 using JOSYN.Surface.FakeAgent;
 using NUnit.Framework;
 
@@ -13,7 +13,7 @@ namespace JOSYN.Surface.Test;
 [TestFixture]
 internal sealed class FakeSurfaceAgentJobsMappingTests
 {
-    private static readonly SurfaceTarget DevTarget =
+    private static readonly JrpTarget DevTarget =
         new() { Environment = RuntimeEnvironment.DEV, Machine = "TEST-BOX" };
 
     // ── GetRegisteredJobs / MapRegisteredJob ───────────────────────────────────

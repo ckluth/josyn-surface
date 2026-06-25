@@ -1,11 +1,11 @@
-using JOSYN.Backend.JobRegistry;
-using JOSYN.Backend.SurfaceAgent;
+using JOSYN.Backend.Gateway;
 using JOSYN.Foundation.ResultPattern;
 using JOSYN.Jap.Contract;
-using JOSYN.Surface.Contracts;
+using JOSYN.Jrp.Launch;
+using JOSYN.Jrp.Surface;
 using JOSYN.Surface.FakeAgent;
 using NUnit.Framework;
-using SurfaceOutcome = JOSYN.Surface.Contracts.ArgumentChangeOutcome;
+using SurfaceOutcome = JOSYN.Jrp.Surface.ArgumentChangeOutcome;
 
 namespace JOSYN.Surface.Test;
 
@@ -16,7 +16,7 @@ namespace JOSYN.Surface.Test;
 [TestFixture]
 internal sealed class ChangeJobArgumentTests
 {
-    private static readonly SurfaceTarget DevTarget =
+    private static readonly JrpTarget DevTarget =
         new() { Environment = RuntimeEnvironment.DEV, Machine = "TEST-BOX" };
 
     // ── ChangeJobArgument command record ──────────────────────────────────────
@@ -75,8 +75,8 @@ internal sealed class ChangeJobArgumentTests
     [Test]
     public async Task CompositeSurfaceAgent_SuccessfulChange_MapsOutcomeFromHandler()
     {
-        var handler = new StubCommandHandler(Result<JOSYN.Backend.JobRegistry.ArgumentChangeOutcome>.Success(
-            new JOSYN.Backend.JobRegistry.ArgumentChangeOutcome
+        var handler = new StubCommandHandler(Result<SurfaceOutcome>.Success(
+            new SurfaceOutcome
             {
                 JobName      = "Contoso.DemoJob",
                 ArgumentName = "default",
@@ -103,7 +103,7 @@ internal sealed class ChangeJobArgumentTests
     public async Task CompositeSurfaceAgent_HandlerReturnsNotFound_PropagatesFailure()
     {
         var handler = new StubCommandHandler(
-            Result<JOSYN.Backend.JobRegistry.ArgumentChangeOutcome>.Fail("[NotFound] No argument 'x' found."));
+            Result<SurfaceOutcome>.Fail("[NotFound] No argument 'x' found."));
 
         var agent  = BuildCompositeAgent(handler);
         var cmd    = BuildCommand("Contoso.DemoJob", "x", "irrelevant");
@@ -157,7 +157,7 @@ internal sealed class ChangeJobArgumentTests
             Content       = content
         };
 
-    private static CompositeSurfaceAgent BuildCompositeAgent(ISurfaceCommandHandler handler)
+    private static CompositeSurfaceAgent BuildCompositeAgent(IGatewayCommandHandler handler)
     {
         // FakeAgent reads are not exercised by write tests; use a dummy connection string.
         // CompositeSurfaceAgent wraps a FakeSurfaceAgent (reads) + handler (writes).
@@ -169,26 +169,26 @@ internal sealed class ChangeJobArgumentTests
     // ── stubs ─────────────────────────────────────────────────────────────────
 
     private sealed class StubCommandHandler(
-        Result<JOSYN.Backend.JobRegistry.ArgumentChangeOutcome> result) : ISurfaceCommandHandler
+        Result<SurfaceOutcome> result) : IGatewayCommandHandler
     {
-        public Result<JOSYN.Backend.JobRegistry.ArgumentChangeOutcome> HandleChangeJobArgument(
-            ChangeJobArgumentCommand command) => result;
+        public Result<SurfaceOutcome> HandleChangeJobArgument(
+            ChangeJobArgument command) => result;
     }
 
-    private sealed class CaptureCommandHandler : ISurfaceCommandHandler
+    private sealed class CaptureCommandHandler : IGatewayCommandHandler
     {
-        public ChangeJobArgumentCommand? ReceivedCommand { get; private set; }
+        public ChangeJobArgument? ReceivedCommand { get; private set; }
 
-        public Result<JOSYN.Backend.JobRegistry.ArgumentChangeOutcome> HandleChangeJobArgument(
-            ChangeJobArgumentCommand command)
+        public Result<SurfaceOutcome> HandleChangeJobArgument(ChangeJobArgument command)
         {
             ReceivedCommand = command;
-            return Result<JOSYN.Backend.JobRegistry.ArgumentChangeOutcome>.Success(
-                new JOSYN.Backend.JobRegistry.ArgumentChangeOutcome
-                {
-                    JobName = command.JobName, ArgumentName = command.ArgumentName,
-                    Before  = "x",            After        = command.Content
-                });
+            return Result<SurfaceOutcome>.Success(new SurfaceOutcome
+            {
+                JobName      = command.JobName,
+                ArgumentName = command.ArgumentName,
+                Before       = "x",
+                After        = command.Content
+            });
         }
     }
 }

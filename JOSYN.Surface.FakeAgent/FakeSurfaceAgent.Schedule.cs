@@ -1,5 +1,7 @@
 using JOSYN.Foundation.ResultPattern;
-using JOSYN.Surface.Contracts;
+using JOSYN.Jrp.Launch;
+using JOSYN.Jrp.Surface;
+using JOSYN.Jrp.Surface.Queries;
 using Microsoft.EntityFrameworkCore;
 
 namespace JOSYN.Surface.FakeAgent;
@@ -20,20 +22,20 @@ public sealed partial class FakeSurfaceAgent
                 .FirstOrDefaultAsync(s => s.JobName == query.JobName, cancellationToken);
 
             if (row is null)
-                return SurfaceError.NotFound($"No schedule found for job '{query.JobName}'.");
+                return JrpError.NotFound($"No schedule found for job '{query.JobName}'.");
 
             return MapJobSchedule(row, query.Target);
         }
         catch (Exception ex)
         {
-            return SurfaceError.Internal(
+            return JrpError.Internal(
                 $"Failed to read schedule for job '{query.JobName}' from the DEV database.", ex);
         }
     }
 
     // ── mapping ────────────────────────────────────────────────────────────────
 
-    internal static JobSchedule MapJobSchedule(JobScheduleRow row, SurfaceTarget target) => new()
+    internal static JobSchedule MapJobSchedule(JobScheduleRow row, JrpTarget target) => new()
     {
         Environment    = target.Environment,
         Machine        = target.Machine,

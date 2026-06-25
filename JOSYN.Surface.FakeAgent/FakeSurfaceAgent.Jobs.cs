@@ -1,5 +1,7 @@
 using JOSYN.Foundation.ResultPattern;
-using JOSYN.Surface.Contracts;
+using JOSYN.Jrp.Launch;
+using JOSYN.Jrp.Surface;
+using JOSYN.Jrp.Surface.Queries;
 using Microsoft.EntityFrameworkCore;
 
 namespace JOSYN.Surface.FakeAgent;
@@ -25,7 +27,7 @@ public sealed partial class FakeSurfaceAgent
         }
         catch (Exception ex)
         {
-            return SurfaceError.Internal("Failed to read job registrations from the DEV database.", ex);
+            return JrpError.Internal("Failed to read job registrations from the DEV database.", ex);
         }
     }
 
@@ -43,13 +45,13 @@ public sealed partial class FakeSurfaceAgent
                 .FirstOrDefaultAsync(j => j.Name == query.JobName, cancellationToken);
 
             if (row is null)
-                return SurfaceError.NotFound($"No job registered with name '{query.JobName}'.");
+                return JrpError.NotFound($"No job registered with name '{query.JobName}'.");
 
             return MapJobArguments(row, query.Target);
         }
         catch (Exception ex)
         {
-            return SurfaceError.Internal(
+            return JrpError.Internal(
                 $"Failed to read arguments for job '{query.JobName}' from the DEV database.", ex);
         }
     }
@@ -63,7 +65,7 @@ public sealed partial class FakeSurfaceAgent
         ArgumentCount     = row.ArgumentRecords.Count
     };
 
-    internal static JobArguments MapJobArguments(JobRegistrationRow row, SurfaceTarget target) => new()
+    internal static JobArguments MapJobArguments(JobRegistrationRow row, JrpTarget target) => new()
     {
         Environment       = target.Environment,
         Machine           = target.Machine,
