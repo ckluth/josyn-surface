@@ -21,6 +21,7 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.5"/>
 		<PackageReference Include="JOSYN.Jrp.Launch"            Version="1.0.0-preview01"/>
 		<PackageReference Include="JOSYN.Jrp.Surface"           Version="1.0.0-preview01"/>
+		<PackageReference Include="JOSYN.Backend.Contracts"     Version="1.0.0-preview01"/>
 		<PackageReference Include="JOSYN.Backend.JobRegistry"   Version="1.0.0-preview01"/>
 		<PackageReference Include="JOSYN.Backend.Gateway"       Version="1.0.0-preview01"/>
 	</ItemGroup>

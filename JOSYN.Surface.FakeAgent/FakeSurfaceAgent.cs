@@ -100,7 +100,7 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
         {
             Uid             = row.UID,
             JobTypeName     = row.JobTypeName,
-            ExecutionStatus = status.Value,
+            ExecutionStatus = ToSessionStatus(status.Value),
             Started         = row.Started,
             Finished        = row.Finished,
             UserName        = row.UserName,
@@ -109,6 +109,22 @@ public sealed partial class FakeSurfaceAgent(string devConnectionString)
             Machine         = target.Machine
         };
     }
+
+    // Read-edge mapping: the platform-internal ExecutionStatus is translated to the JRP-owned
+    // wire enum here so no backend type crosses the JRP boundary (the DS-2 contract seam).
+    private static SessionStatus ToSessionStatus(ExecutionStatus status) => status switch
+    {
+        ExecutionStatus.Preparing                    => SessionStatus.Preparing,
+        ExecutionStatus.Running                      => SessionStatus.Running,
+        ExecutionStatus.RunningCancellationRequested => SessionStatus.RunningCancellationRequested,
+        ExecutionStatus.FinishedSuccessfully         => SessionStatus.FinishedSuccessfully,
+        ExecutionStatus.FinishedWithErrors           => SessionStatus.FinishedWithErrors,
+        ExecutionStatus.FinishedFaulted              => SessionStatus.FinishedFaulted,
+        ExecutionStatus.FinishedByCancellation       => SessionStatus.FinishedByCancellation,
+        ExecutionStatus.FinishedRejected             => SessionStatus.FinishedRejected,
+        ExecutionStatus.FinishedAbandoned            => SessionStatus.FinishedAbandoned,
+        _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unmapped ExecutionStatus.")
+    };
 
     internal static ErrorDetail MapError(ErrorRow row, JrpTarget target) => new()
     {

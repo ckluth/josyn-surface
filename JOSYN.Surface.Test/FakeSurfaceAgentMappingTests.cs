@@ -1,4 +1,3 @@
-using JOSYN.Backend.Contracts;
 using JOSYN.Jap.Contract;
 using JOSYN.Jrp.Launch;
 using JOSYN.Jrp.Surface;
@@ -40,7 +39,7 @@ internal sealed class FakeSurfaceAgentMappingTests
         {
             Assert.That(summary.Uid, Is.EqualTo(row.UID));
             Assert.That(summary.JobTypeName, Is.EqualTo("Contoso.DemoJob"));
-            Assert.That(summary.ExecutionStatus, Is.EqualTo(ExecutionStatus.Running));
+            Assert.That(summary.ExecutionStatus, Is.EqualTo(SessionStatus.Running));
             Assert.That(summary.Started, Is.EqualTo(row.Started));
             Assert.That(summary.Finished, Is.Null);
             Assert.That(summary.UserName, Is.EqualTo("alice"));
